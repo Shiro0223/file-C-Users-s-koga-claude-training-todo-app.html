@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>筋トレタスク管理</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Noto Sans JP', 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 48px 16px 80px;
+    }
+
+    .container {
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+      padding: 36px 32px 32px;
+      width: 100%;
+      max-width: 500px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+
+    .header h1 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #1e1e2e;
+      letter-spacing: 0.01em;
+    }
+
+    .task-count {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #764ba2;
+      background: #f3eeff;
+      padding: 4px 12px;
+      border-radius: 999px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .input-row input {
+      flex: 1;
+      padding: 11px 16px;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 10px;
+      font-size: 0.93rem;
+      font-family: inherit;
+      outline: none;
+      color: #1e1e2e;
+      background: #fafafa;
+      transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    }
+
+    .input-row input::placeholder {
+      color: #b0b7c3;
+    }
+
+    .input-row input:focus {
+      border-color: #764ba2;
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(118, 75, 162, 0.12);
+    }
+
+    .input-row button {
+      padding: 11px 22px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.93rem;
+      font-family: inherit;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      white-space: nowrap;
+    }
+
+    .input-row button:hover {
+      opacity: 0.88;
+    }
+
+    .input-row button:active {
+      transform: scale(0.97);
+    }
+
+    .filter-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 20px;
+      background: #f5f5f8;
+      border-radius: 10px;
+      padding: 4px;
+    }
+
+    .filter-row button {
+      flex: 1;
+      padding: 7px 0;
+      border: none;
+      border-radius: 7px;
+      background: transparent;
+      font-size: 0.83rem;
+      font-family: inherit;
+      font-weight: 500;
+      color: #888;
+      cursor: pointer;
+      transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+    }
+
+    .filter-row button:hover:not(.active) {
+      color: #555;
+      background: rgba(255,255,255,0.6);
+    }
+
+    .filter-row button.active {
+      background: #fff;
+      color: #764ba2;
+      box-shadow: 0 1px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    #task-list {
+      list-style: none;
+    }
+
+    #task-list li {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 13px 16px;
+      background: #fafafa;
+      border-radius: 12px;
+      margin-bottom: 8px;
+      font-size: 0.93rem;
+      color: #2d2d3a;
+      border: 1.5px solid #ececf1;
+      transition: background 0.2s, border-color 0.2s, opacity 0.2s;
+      animation: slideIn 0.2s ease;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    #task-list li:hover {
+      border-color: #d1c4e9;
+      background: #fff;
+    }
+
+    #task-list li.done {
+      background: #f6fdf7;
+      border-color: #bbf7d0;
+      opacity: 0.8;
+    }
+
+    #task-list li.done .task-text {
+      text-decoration: line-through;
+      color: #aaa;
+    }
+
+    /* カスタムチェックボックス */
+    .checkbox-wrap {
+      position: relative;
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    .checkbox-wrap input[type="checkbox"] {
+      opacity: 0;
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+      margin: 0;
+      z-index: 1;
+    }
+
+    .checkbox-wrap .check-icon {
+      position: absolute;
+      inset: 0;
+      border: 2px solid #c4c4d4;
+      border-radius: 6px;
+      background: #fff;
+      transition: background 0.18s, border-color 0.18s;
+      pointer-events: none;
+    }
+
+    .checkbox-wrap .check-icon::after {
+      content: '';
+      position: absolute;
+      left: 5px;
+      top: 2px;
+      width: 6px;
+      height: 10px;
+      border: 2px solid #fff;
+      border-top: none;
+      border-left: none;
+      transform: rotate(45deg) scale(0);
+      transition: transform 0.15s;
+    }
+
+    .checkbox-wrap input:checked + .check-icon {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border-color: transparent;
+    }
+
+    .checkbox-wrap input:checked + .check-icon::after {
+      transform: rotate(45deg) scale(1);
+    }
+
+    .task-text {
+      flex: 1;
+      line-height: 1.4;
+      transition: color 0.2s;
+    }
+
+    .empty-message {
+      color: #b0b7c3;
+      font-size: 0.88rem;
+      text-align: center;
+      padding: 24px 0;
+      border: none;
+      background: transparent;
+      animation: none;
+    }
+
+    .empty-message:hover {
+      border-color: transparent;
+      background: transparent;
+    }
+
+    .footer-note {
+      margin-top: 20px;
+      font-size: 0.78rem;
+      color: #c0c0cc;
+      text-align: center;
+    }
+
+    .today-card {
+      background: linear-gradient(135deg, rgba(102,126,234,0.08), rgba(118,75,162,0.08));
+      border: 1.5px solid rgba(118,75,162,0.18);
+      border-radius: 14px;
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    #today-date {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #1e1e2e;
+    }
+
+    #next-workout {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #764ba2;
+      background: #f3eeff;
+      padding: 4px 10px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    #task-list li[data-type="ashi"]          { border-left-color: #f97316; }
+    #task-list li[data-type="senaka"]        { border-left-color: #3b82f6; }
+    #task-list li[data-type="mune"]          { border-left-color: #8b5cf6; }
+    #task-list li[data-type="ashi"].done     { background: #fff7ed; border-left-color: #fed7aa; }
+    #task-list li[data-type="senaka"].done   { background: #eff6ff; border-left-color: #bfdbfe; }
+    #task-list li[data-type="mune"].done     { background: #faf5ff; border-left-color: #ddd6fe; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>💪 筋トレタスク管理</h1>
+      <span class="task-count" id="task-count">0 件</span>
+    </div>
+
+    <div class="today-card">
+      <div id="today-date"></div>
+      <div id="next-workout"></div>
+    </div>
+
+    <div class="input-row">
+      <input type="text" id="task-input" placeholder="例：ベンチプレス 3セット×10回">
+      <button id="add-btn">追加</button>
+    </div>
+
+    <div class="filter-row">
+      <button class="active" data-filter="all">すべて</button>
+      <button data-filter="active">未完了</button>
+      <button data-filter="done">完了</button>
+    </div>
+
+    <ul id="task-list">
+      <li class="empty-message" id="empty-msg">タスクがありません</li>
+    </ul>
+
+    <p class="footer-note">データはこのブラウザに自動保存されます</p>
+  </div>
+
+  <script>
+    const input       = document.getElementById('task-input');
+    const addBtn      = document.getElementById('add-btn');
+    const taskList    = document.getElementById('task-list');
+    const filterBtns  = document.querySelectorAll('.filter-row button');
+    const taskCountEl = document.getElementById('task-count');
+    const todayDateEl = document.getElementById('today-date');
+    const nextWkEl    = document.getElementById('next-workout');
+
+    let currentFilter = 'all';
+
+    const DAY_JA = ['日','月','火','水','木','金','土'];
+    const WORKOUTS = {
+      1: { name: '足トレ',   type: 'ashi'   },
+      3: { name: '背中トレ', type: 'senaka' },
+      5: { name: '胸トレ',   type: 'mune'   },
+    };
+
+    function fmtDate(d) {
+      return `${d.getMonth()+1}/${d.getDate()}(${DAY_JA[d.getDay()]})`;
+    }
+
+    // --- 今日カード ---
+    function updateTodayCard() {
+      const now = new Date();
+      todayDateEl.textContent =
+        `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日（${DAY_JA[now.getDay()]}）`;
+
+      const next = new Date(now);
+      next.setHours(0,0,0,0);
+      for (let i = 1; i <= 7; i++) {
+        next.setDate(next.getDate() + 1);
+        const w = WORKOUTS[next.getDay()];
+        if (w) {
+          const label = i === 1 ? '明日' : fmtDate(next);
+          nextWkEl.textContent = `次回: ${label} ${w.name} 21:00〜`;
+          break;
+        }
+      }
+    }
+
+    // --- localStorage ---
+    function loadTasks() {
+      return JSON.parse(localStorage.getItem('tasks') || '[]');
+    }
+
+    function saveTasks() {
+      const items = taskList.querySelectorAll('li:not(.empty-message)');
+      const tasks = Array.from(items).map(li => ({
+        text: li.querySelector('.task-text').textContent,
+        done: li.classList.contains('done'),
+        type: li.dataset.type || null,
+      }));
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+    }
+
+    // --- DOM ヘルパー ---
+    function getEmptyMsg() { return document.getElementById('empty-msg'); }
+
+    function updateCount() {
+      const total = taskList.querySelectorAll('li:not(.empty-message)').length;
+      const done  = taskList.querySelectorAll('li.done').length;
+      taskCountEl.textContent = `${done} / ${total} 件完了`;
+    }
+
+    function applyFilter() {
+      const items = taskList.querySelectorAll('li:not(.empty-message)');
+      let visible = 0;
+      items.forEach(li => {
+        const isDone = li.classList.contains('done');
+        const show = currentFilter === 'all'
+          || (currentFilter === 'done'   &&  isDone)
+          || (currentFilter === 'active' && !isDone);
+        li.style.display = show ? '' : 'none';
+        if (show) visible++;
+      });
+      const em = getEmptyMsg();
+      if (items.length === 0 || visible === 0) {
+        if (!em) {
+          const li = document.createElement('li');
+          li.className = 'empty-message'; li.id = 'empty-msg';
+          li.textContent = items.length === 0 ? 'タスクがありません' : '該当するタスクがありません';
+          taskList.appendChild(li);
+        } else {
+          em.textContent = items.length === 0 ? 'タスクがありません' : '該当するタスクがありません';
+        }
+      } else if (em) { em.remove(); }
+    }
+
+    function createTaskItem(text, done = false, type = null) {
+      const li = document.createElement('li');
+      if (done) li.classList.add('done');
+      if (type) li.dataset.type = type;
+
+      const wrap = document.createElement('label');
+      wrap.className = 'checkbox-wrap';
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.checked = done;
+      checkbox.addEventListener('change', () => {
+        li.classList.toggle('done', checkbox.checked);
+        saveTasks(); updateCount(); applyFilter();
+      });
+      const icon = document.createElement('span');
+      icon.className = 'check-icon';
+      wrap.appendChild(checkbox); wrap.appendChild(icon);
+
+      const span = document.createElement('span');
+      span.className = 'task-text';
+      span.textContent = text;
+
+      li.appendChild(wrap); li.appendChild(span);
+      return li;
+    }
+
+    function addTask() {
+      const text = input.value.trim();
+      if (!text) return;
+      getEmptyMsg()?.remove();
+      taskList.appendChild(createTaskItem(text, false, null));
+      saveTasks(); updateCount(); applyFilter();
+      input.value = ''; input.focus();
+    }
+
+    // --- スケジュール自動生成（6/1〜6/30） ---
+    function generateSchedule() {
+      const tasks = [];
+      const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+      const cur = new Date(2026, 5, 1);
+      const end = new Date(2026, 5, 30);
+      while (cur <= end) {
+        const w = WORKOUTS[cur.getDay()];
+        if (w) {
+          tasks.push({
+            text: `${fmtDate(cur)} ${w.name}　21:00〜23:00`,
+            done: cur < todayStart,
+            type: w.type,
+          });
+        }
+        cur.setDate(cur.getDate() + 1);
+      }
+      return tasks;
+    }
+
+    // --- 初期化 ---
+    function init() {
+      const saved = loadTasks();
+      const source = saved.length > 0 ? saved : generateSchedule();
+      if (saved.length === 0) localStorage.setItem('tasks', JSON.stringify(source));
+
+      if (source.length > 0) {
+        getEmptyMsg()?.remove();
+        source.forEach(({ text, done, type }) =>
+          taskList.appendChild(createTaskItem(text, done, type))
+        );
+      }
+      updateTodayCard(); updateCount(); applyFilter();
+    }
+
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter;
+        applyFilter();
+      });
+    });
+
+    addBtn.addEventListener('click', addTask);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') addTask(); });
+
+    init();
+  </script>
+</body>
+</html>
